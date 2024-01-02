@@ -198,6 +198,7 @@ class FileMap:
             r['raw'] = self.output_dir.joinpath(
                 input_filepath.relative_to(self.input_dir))
             r['web'] = webpath(r['html'])
+            r['web_raw'] = webpath(r['raw'])
 
         return r
 
@@ -288,7 +289,11 @@ def render_plaintext_file(input_filepath):
 
     raw_content = input_filepath.read_text()
     properties = FILEMAP.get(input_filepath)
-    html = JINJA_TEMPLATE_TEXTARTICLE.render(license=LICENSE, **properties)
+    html = JINJA_TEMPLATE_TEXTARTICLE.render(
+        license=LICENSE,
+        **properties,
+        raw_link=properties['dst_path']['web_raw'],
+        raw_content=raw_content)
     properties['dst_path']['raw'].write_text(raw_content)
     properties['dst_path']['html'].write_text(html)
 
