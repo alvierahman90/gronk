@@ -142,6 +142,9 @@ class FileMap:
             if '.git' in path.parts:
                 continue
 
+            if 'readme.md' == path.name:
+                continue
+
             if path.is_dir():
                 entry = self._get_directory_properties(
                     path, include_index_entries=False)
@@ -492,9 +495,6 @@ def main(args):
 
         # render each file
         for file in files:
-            # don't render readme.md as index as it is used for directory
-            if file == "readme.md":
-                continue
             render_file(root.joinpath(file))
 
     process_home_index(args)
