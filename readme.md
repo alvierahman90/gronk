@@ -1,10 +1,10 @@
 # gronk
 
-View your notes as a static html site. Browse a live sample of it [here](https://notes.alv.cx).
+Formerly notes2web.
+
+View your notes as a static HTML site. Powers [notes.alv.cx](https://notes.alv.cx).
 
 ![](./screenshot.png)
-
-Tested with [pandoc v2.19.2](https://github.com/jgm/pandoc/releases/tag/2.19.2).
 
 
 ## Why?
