@@ -38,6 +38,10 @@ JINJA_TEMPLATE_INDEX = JINJA_ENV.get_template("index.html")
 JINJA_TEMPLATE_ARTICLE = JINJA_ENV.get_template("article.html")
 JINJA_TEMPLATE_PERMALINK = JINJA_ENV.get_template("permalink.html")
 
+JINJA_TEMPLATE_BLOGINDEX = JINJA_ENV.get_template("blog_index.html")
+JINJA_TEMPLATE_BLOG_INLINE_POST = JINJA_ENV.get_template("blog_inline_post.html")
+JINJA_TEMPLATE_BLOG_FEED = JINJA_ENV.get_template("rss.xml")
+
 LICENSE = None
 FILEMAP = None
 
@@ -52,6 +56,11 @@ class FileMap:
         self._map = {}
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
+
+    def get_base_url(self):
+        props = self.get(self.input_dir.joinpath('readme.md'))
+        print(props)
+        return props['base_url']
 
     @staticmethod
     def _path_to_key(path):
@@ -112,7 +121,8 @@ class FileMap:
                                   include_index_entries=True):
         post = {
             'title': filepath.name,
-            'content_after_search': False,
+            'blog': False,
+            'content_after_search': None,
             'automatic_index': True,
             'search_bar': True,
             'tags': [],
@@ -124,6 +134,9 @@ class FileMap:
                 for key, val in frontmatter.load(
                         file_pointer).to_dict().items():
                     post[key] = val
+
+        if post['content_after_search'] is None:
+            post['content_after_search'] = post['blog']
 
         if 'content' in post.keys():
             post['content'] = render_markdown(post['content'])
@@ -160,7 +173,7 @@ class FileMap:
         return entries
 
     def _get_file_properties(self, filepath):
-        post = {'title': filepath.name}
+        post = {'title': filepath.name, 'pub_date': False}
 
         if filepath.suffix == '.md':
             with open(filepath, encoding='utf-8') as file_pointer:
@@ -257,6 +270,34 @@ def get_args():
     )
     return parser.parse_args()
 
+def render_inline_blog_post(input_filepath):
+    """
+    render markdown file as blog post for inlinining into blog index
+    returns html
+    """
+    with open(input_filepath, encoding='utf-8') as file_pointer:
+        content = frontmatter.load(file_pointer).content
+
+    properties = FILEMAP.get(input_filepath)
+
+    html = render_markdown(content)
+    html = JINJA_TEMPLATE_BLOG_INLINE_POST.render(
+        license=LICENSE,
+        content=html,
+        lecture_slides=properties.get("lecture_slides"),
+        lecture_notes=properties.get("lecture_notes"),
+        uuid=properties.get("uuid"),
+        tags=properties.get("tags"),
+        author=properties.get("author"),
+        title=properties.get("title"),
+        published=properties.get("pub_date"),
+        base_url=FILEMAP.get_base_url(),
+    )
+
+    properties['dst_path']['html'].write_text(html)
+
+    return html
+
 
 def render_markdown_file(input_filepath):
     """
@@ -278,7 +319,9 @@ def render_markdown_file(input_filepath):
         uuid=properties.get("uuid"),
         tags=properties.get("tags"),
         author=properties.get("author"),
-        title=properties.get("title"))
+        title=properties.get("title"),
+        published=properties.get("pub_date")
+    )
 
     properties['dst_path']['html'].write_text(html)
 
@@ -476,22 +519,47 @@ def main(args):
         root_properties = FILEMAP.get(root)
         root_properties['dst_path']['raw'].mkdir(parents=True, exist_ok=True)
 
+        posts = []
+        if root_properties['blog']:
+            for file in files:
+                props = FILEMAP.get(root.joinpath(file))
+                post = {
+                    'title': props['title'],
+                    'link': props['dst_path']['web'],
+                    'pub_date': props.get('pub_date'),
+                    'description': render_inline_blog_post(root.joinpath(file)),
+                }
+                posts.append(post)
+
         #pprint.pprint(root_properties)
-        html = JINJA_TEMPLATE_INDEX.render(
+        # render index
+        html = (JINJA_TEMPLATE_BLOGINDEX if root_properties['blog'] else JINJA_TEMPLATE_INDEX).render(
             gronk_commit=GRONK_COMMIT,
             title=root_properties.get('title', ''),
             content=root_properties.get('content', ''),
             content_after_search=root_properties['content_after_search'],
             automatic_index=root_properties['automatic_index'],
             search_bar=root_properties['search_bar'],
+            posts=posts,
             index_entries=[{
                 'title': entry.get('title', ''),
                 'is_dir': entry.get('is_dir', False),
                 'path': str(entry.get('path', Path(''))),
             } for entry in root_properties.get('index_entries', '')],
         )
-        root_properties['dst_path']['raw'].joinpath('index.html').write_text(
-            html)
+        root_properties['dst_path']['raw'].joinpath('index.html').write_text(html)
+
+        # render rss feed if blog
+        if root_properties['blog']:
+            rss = JINJA_TEMPLATE_BLOG_FEED.render(
+                title=root_properties.get('title', ''),
+                description=root_properties.get('content', ''),
+                base_url=FILEMAP.get_base_url(),
+                link=f"{FILEMAP.get_base_url()}{root_properties['dst_path']['web']}",
+                language='en-GB',
+                posts=posts,
+            )
+            root_properties['dst_path']['raw'].joinpath('feed.xml').write_text(rss)
 
         # render each file
         for file in files:

@@ -1,0 +1,42 @@
+{% block content %}
+  <p class="smallText metadata"> title: {{ title }} </p>
+  {% if lecture_slides %}
+  <p class="smallText metadata"> lecture_slides: [
+    {% for slide in lecture_slides %}
+    <a href="{{ base_url}}{{ slide }}">{{ slide }}</a>{% if loop.nextitem %},{% endif %}
+    {% endfor %}
+  ]</p>
+  {% endif %}
+  {% if lecture_notes %}
+  <p class="smallText metadata"> lecture_notes: [
+    {% for note in lecture_notes %}
+    <a href="{{ base_url }}{{ note }}">{{ note }}</a>{% if loop.nextitem %},{% endif %}
+    {% endfor %}
+  ]</p>
+  {% endif %}
+
+  {% if uuid %}
+  <p class="smallText metadata"> uuid: {{ uuid }} (<a href="{{ base_url }}/permalink?uuid={{ uuid }}">permalink</a>) </p>
+  {% endif %}
+
+  {% if published %}
+  <p class="smallText metadata"> published: {{ published }} </p>
+  {% endif %}
+
+  <p class="smallText metadata"> tags: [
+    {% for tag in tags %}
+    <a href="{{ base_url }}/tags/{{ tag }}">{{ tag }}</a>{% if loop.nextitem %},{% endif %}
+    {% endfor %}
+  ]</p>
+
+  <p class="smallText metadata">
+  {% if author is string %}
+    written by: {{ author }}
+  {% elif author is iterable %}
+    written by: [ {% for auth in author %}{{ auth }}{% if loop.nextitem %}, {% endif %}{% endfor %} ]
+  {% endif %}
+  </p>
+  {% block body_content %}
+    {{ content|safe }}
+  {% endblock %}
+{% endblock %}

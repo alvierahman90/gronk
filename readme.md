@@ -57,13 +57,14 @@ To add custom content to a directory index, put it in a file called `readme.md` 
 
 You can set the following frontmatter variables to customise the directory index of a directory:
 
-| variable               | default value     | description                                                                                |
-|------------------------|-------------------|--------------------------------------------------------------------------------------------|
-| `tags`                 | `[]`              | list of tags, used by search and inherited by any notes and subdirectories                 |
-| `uuid`                 | none              | unique id to reference directory, used for permalinking                                    |
-| `content_after_search` | `false`           | show custom content in `readme.md` after search bar and directory index                     |
-| `automatic_index`      | `true`            | show the automatically generated directory index. required for search bar to function.     |
-| `search_bar`           | `true`            | show search bar to search directory items. requires `automatic_index` (enabled by default) |
+| variable               | default value  | description                                                                                |
+|------------------------|----------------|--------------------------------------------------------------------------------------------|
+| `blog`                 | `false`        | enable [blog mode](#blog-mode) for this directory                                          |
+| `tags`                 | `[]`           | list of tags, used by search and inherited by any notes and subdirectories                 |
+| `uuid`                 | none           | unique id to reference directory, used for permalinking                                    |
+| `content_after_search` | same as `blog` | show custom content in `readme.md` after search bar and directory index                    |
+| `automatic_index`      | `true`         | show the automatically generated directory index. required for search bar to function.     |
+| `search_bar`           | `true`         | show search bar to search directory items. requires `automatic_index` (enabled by default) |
 
 
 ## Notes Metadata
@@ -73,11 +74,20 @@ gronk reads the following YAML [frontmatter](https://jekyllrb.com/docs/front-mat
 | variable         | description                                                                           |
 |------------------|---------------------------------------------------------------------------------------|
 | `author`         | The person(s) who wrote the article                                                   |
+| `pub_date`       | set the publish date of an article/post/note                                          |
 | `tags`           | A YAML list of tags which the article relates to - this is used for browsing and also |
 | `title`          | The title of the article                                                              |
 | `uuid`           | A unique identifier used for permalinks.                                              |
 | `lecture_slides` | a list of paths pointing to lecture slides used while taking notes                    |
 | `lecture_notes`  | a list of paths pointing to other notes used while taking notes                       |
+
+## Blog Mode
+
+A directory can be turned into a blog by enabling blog mode.
+This can be done by setting the `blog` variable to `true` in the `readme.md` [custom directory metadata](#custom-directory-index-and-metadata).
+
+Notes under this directory will be published to a blog, whose feed is accesible at `https://notes.alv.cx/notes/<directory..>/feed.xml`.
+
 
 ## Permalinks
 

@@ -32,6 +32,10 @@
 <p class="smallText metadata"> uuid: {{ uuid }} (<a href="/permalink?uuid={{ uuid }}">permalink</a>) </p>
 {% endif %}
 
+{% if published %}
+<p class="smallText metadata"> published: {{ published }} </p>
+{% endif %}
+
 <p class="smallText metadata"> tags: [
   {% for tag in tags %}
   <a href="/tags/{{ tag }}">{{ tag }}</a>{% if loop.nextitem %},{% endif %}
