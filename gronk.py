@@ -14,6 +14,7 @@ import time
 import magic
 import regex as re
 import pprint
+from datetime import datetime as dt
 
 import frontmatter
 import jinja2
@@ -244,6 +245,13 @@ class FileMap:
             d[val['uuid']] = str(val['dst_path']['web'])
 
         return d
+
+
+def rfc822_date_sorter_key(date):
+    if date is None:
+        return 0
+
+    int(dt.strptime(date, '%a, %d %b %Y %H:%M:%S %z').timestamp())
 
 
 def update_required(src_filepath, output_filepath):
@@ -531,6 +539,22 @@ def main(args):
                 }
                 posts.append(post)
 
+            posts.sort(
+                key=lambda p: rfc822_date_sorter_key(p.get('pub_date')),
+                reverse=True
+            )
+
+            # render rss feed
+            rss = JINJA_TEMPLATE_BLOG_FEED.render(
+                title=root_properties.get('title', ''),
+                description=root_properties.get('content', ''),
+                base_url=FILEMAP.get_base_url(),
+                link=f"{FILEMAP.get_base_url()}{root_properties['dst_path']['web']}",
+                language='en-GB',
+                posts=posts,
+            )
+            root_properties['dst_path']['raw'].joinpath('feed.xml').write_text(rss)
+
         #pprint.pprint(root_properties)
         # render index
         html = (JINJA_TEMPLATE_BLOGINDEX if root_properties['blog'] else JINJA_TEMPLATE_INDEX).render(
@@ -548,18 +572,6 @@ def main(args):
             } for entry in root_properties.get('index_entries', '')],
         )
         root_properties['dst_path']['raw'].joinpath('index.html').write_text(html)
-
-        # render rss feed if blog
-        if root_properties['blog']:
-            rss = JINJA_TEMPLATE_BLOG_FEED.render(
-                title=root_properties.get('title', ''),
-                description=root_properties.get('content', ''),
-                base_url=FILEMAP.get_base_url(),
-                link=f"{FILEMAP.get_base_url()}{root_properties['dst_path']['web']}",
-                language='en-GB',
-                posts=posts,
-            )
-            root_properties['dst_path']['raw'].joinpath('feed.xml').write_text(rss)
 
         # render each file
         for file in files:
