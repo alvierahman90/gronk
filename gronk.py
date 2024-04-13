@@ -60,7 +60,6 @@ class FileMap:
 
     def get_base_url(self):
         props = self.get(self.input_dir.joinpath('readme.md'))
-        print(props)
         return props['base_url']
 
     @staticmethod
@@ -249,9 +248,11 @@ class FileMap:
 
 def rfc822_date_sorter_key(date):
     if date is None:
-        return 0
+        ret = 0
+    else:
+        ret = int(dt.strptime(date, '%a, %d %b %Y %H:%M:%S %z').timestamp())
 
-    int(dt.strptime(date, '%a, %d %b %Y %H:%M:%S %z').timestamp())
+    return ret
 
 
 def update_required(src_filepath, output_filepath):
