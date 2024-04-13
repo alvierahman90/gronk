@@ -88,6 +88,16 @@ This can be done by setting the `blog` variable to `true` in the `readme.md` [cu
 
 Notes under this directory will be published to a blog, whose feed is accesible at `https://notes.alv.cx/notes/<directory..>/feed.xml`.
 
+When blog mode is enabled, it is required that the `base_url` property is set in the top level `readme.md` file.
+Note that there should be no trailing slash.
+If a `readme.md` file does not exist, then an empty one can be created:
+
+```md
+---
+base_url: https://notes.alv.cx
+---
+```
+
 
 ## Permalinks
 
