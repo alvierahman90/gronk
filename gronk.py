@@ -555,6 +555,7 @@ def main(args):
                 posts=posts,
             )
             root_properties['dst_path']['raw'].joinpath('feed.xml').write_text(rss)
+            root_properties['dst_path']['raw'].joinpath('rss.xml').write_text(rss)
 
         #pprint.pprint(root_properties)
         # render index
