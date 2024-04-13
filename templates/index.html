@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+  {% if not content %}
 	<h1>{{ title }}</h1>
+  {% endif %}
 
 	{% if not content_after_search %}
 	{{ content|safe }}
