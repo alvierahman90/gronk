@@ -74,7 +74,7 @@ gronk reads the following YAML [frontmatter](https://jekyllrb.com/docs/front-mat
 | variable         | description                                                                           |
 |------------------|---------------------------------------------------------------------------------------|
 | `author`         | The person(s) who wrote the article                                                   |
-| `pub_date`       | set the publish date of an article/post/note                                          |
+| `pub_date`       | (for blog mode) set the publish date of an article/post/note (MUST be RFC822 format)  |
 | `tags`           | A YAML list of tags which the article relates to - this is used for browsing and also |
 | `title`          | The title of the article                                                              |
 | `uuid`           | A unique identifier used for permalinks.                                              |
