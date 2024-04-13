@@ -68,7 +68,9 @@
     {{ content|safe }}
 
     {% for post in posts %}
+      <div class="blog_inline_post">
       {{ post['description']|safe }}
+      </div>
     {% endfor %}
 	{% endif %}
 
