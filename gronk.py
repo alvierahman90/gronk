@@ -443,7 +443,8 @@ def generate_permalink_page(output_dir):
     dir = output_dir.joinpath('permalink')
     dir.mkdir(exist_ok=True)
     dir.joinpath('index.html').write_text(
-        JINJA_TEMPLATE_PERMALINK.render(gronk_commit=GRONK_COMMIT,
+        JINJA_TEMPLATE_PERMALINK.render(title="redirecting... | gronk",
+                                        gronk_commit=GRONK_COMMIT,
                                         data=FILEMAP.get_uuid_map()))
 
 
