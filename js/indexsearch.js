@@ -30,7 +30,7 @@ function updateResults() {
   console.log("updating results")
   resultsDiv.innerHTML = ''
   if (searchBar.value) results = fuse.search(searchBar.value, { limit: RESULTS_MAX }).map(r => r.item)
-  else results = data
+  else results = search_data
 
   results.forEach(r => {
     wrapper = document.createElement('li')
