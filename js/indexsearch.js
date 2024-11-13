@@ -6,7 +6,7 @@ const TITLE = "title"
 const SEARCH_TIMEOUT_MS = 100
 var SEARCH_TIMEOUT_ID = -1
 
-const fuse = new Fuse(data, {
+const fuse = new Fuse(search_data, {
   keys: [ 'title' ],
   ignoreLocation: true,
   threshhold: 0.4,
