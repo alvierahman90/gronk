@@ -4,6 +4,10 @@
 	<h1>{{ title }}</h1>
   {% endif %}
 
+  {% if uuid %}
+  <p class="smallText metadata"> uuid: {{ uuid }} (<a href="/permalink?uuid={{ uuid }}">permalink</a>) </p>
+  {% endif %}
+
 	{% if not content_after_search %}
 	{{ content|safe }}
 	{% endif %}

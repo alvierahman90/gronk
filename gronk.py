@@ -13,8 +13,8 @@ import copy
 import time
 import magic
 import regex as re
-import pprint
 from datetime import datetime as dt
+import json
 
 import frontmatter
 import jinja2
@@ -26,12 +26,12 @@ PANDOC_SERVER_URL = os.getenv("PANDOC_SERVER_URL", r"http://localhost:3030/")
 PANDOC_TIMEOUT = int(os.getenv("PANDOC_TIMEOUT", "120"))
 GRONK_CSS_DIR = Path(os.getenv("GRONK_CSS_DIR", "/opt/gronk/css"))
 GRONK_JS_DIR = Path(os.getenv("GRONK_JS_DIR", "/opt/gronk/js"))
-GRONK_TEMPLATES_DIR = Path(
-    os.getenv("GRONK_TEMPLATES_DIR", "/opt/gronk/templates/"))
+GRONK_TEMPLATES_DIR = Path(os.getenv("GRONK_TEMPLATES_DIR", "/opt/gronk/templates/"))
 
 JINJA_ENV = jinja2.Environment(
     loader=jinja2.FileSystemLoader(searchpath=GRONK_TEMPLATES_DIR),
-    autoescape=jinja2.select_autoescape)
+    autoescape=jinja2.select_autoescape,
+)
 
 JINJA_TEMPLATE_TEXTARTICLE = JINJA_ENV.get_template("article-text.html")
 JINJA_TEMPLATE_HOME_INDEX = JINJA_ENV.get_template("home.html")
@@ -59,8 +59,8 @@ class FileMap:
         self.output_dir = Path(output_dir)
 
     def get_base_url(self):
-        props = self.get(self.input_dir.joinpath('readme.md'))
-        return props['base_url']
+        props = self.get(self.input_dir.joinpath("readme.md"))
+        return props["base_url"]
 
     @staticmethod
     def _path_to_key(path):
@@ -68,8 +68,9 @@ class FileMap:
 
     @staticmethod
     def is_plaintext(filename):
-        return re.match(r'^text/', magic.from_file(str(filename),
-                                                   mime=True)) is not None
+        return (
+            re.match(r"^text/", magic.from_file(str(filename), mime=True)) is not None
+        )
 
     def add(self, filepath):
         filepath = Path(filepath)
@@ -78,8 +79,8 @@ class FileMap:
         else:
             properties = self._get_file_properties(filepath)
 
-        properties['src_path'] = filepath
-        properties['dst_path'] = self._get_output_filepath(filepath)
+        properties["src_path"] = filepath
+        properties["dst_path"] = self._get_output_filepath(filepath)
 
         self._map[self._path_to_key(filepath)] = properties
 
@@ -93,8 +94,7 @@ class FileMap:
         if self._path_to_key(filepath) not in self._map.keys():
             self.add(filepath)
 
-        properties = copy.deepcopy(
-            self._map.get(self._path_to_key(filepath), default))
+        properties = copy.deepcopy(self._map.get(self._path_to_key(filepath), default))
 
         if raw:
             return properties
@@ -102,49 +102,46 @@ class FileMap:
         parent = filepath
         while True:
             parent = parent.parent
-            if parent == Path('.'):
+            if parent == Path("."):
                 break
 
             parent_properties = self.get(parent, raw=True)
             # TODO inherit any property that isn't defined, append any lists
             # that exist
-            properties['tags'] = properties.get(
-                'tags', []) + parent_properties.get('tags', [])
+            properties["tags"] = properties.get("tags", []) + parent_properties.get(
+                "tags", []
+            )
 
             if parent == self.input_dir:
                 break
 
         return properties
 
-    def _get_directory_properties(self,
-                                  filepath: Path,
-                                  include_index_entries=True):
+    def _get_directory_properties(self, filepath: Path, include_index_entries=True):
         post = {
-            'title': filepath.name,
-            'blog': False,
-            'content_after_search': None,
-            'automatic_index': True,
-            'search_bar': True,
-            'tags': [],
+            "title": filepath.name,
+            "blog": False,
+            "content_after_search": None,
+            "automatic_index": True,
+            "search_bar": True,
+            "tags": [],
         }
 
-        if 'readme.md' in [f.name for f in filepath.iterdir()]:
-            with open(filepath.joinpath('readme.md'),
-                      encoding='utf-8') as file_pointer:
-                for key, val in frontmatter.load(
-                        file_pointer).to_dict().items():
+        if "readme.md" in [f.name for f in filepath.iterdir()]:
+            with open(filepath.joinpath("readme.md"), encoding="utf-8") as file_pointer:
+                for key, val in frontmatter.load(file_pointer).to_dict().items():
                     post[key] = val
 
-        if post['content_after_search'] is None:
-            post['content_after_search'] = post['blog']
+        if post["content_after_search"] is None:
+            post["content_after_search"] = post["blog"]
 
-        if 'content' in post.keys():
-            post['content'] = render_markdown(post['content'])
+        if "content" in post.keys():
+            post["content"] = render_markdown(post["content"])
 
-        post['is_dir'] = True
+        post["is_dir"] = True
 
         if include_index_entries:
-            post['index_entries'] = self._get_index_entries(filepath)
+            post["index_entries"] = self._get_index_entries(filepath)
 
         return post
 
@@ -152,69 +149,67 @@ class FileMap:
         entries = []
 
         for path in filepath.iterdir():
-            if '.git' in path.parts:
+            if ".git" in path.parts:
                 continue
 
-            if 'readme.md' == path.name:
+            if "readme.md" == path.name:
                 continue
 
             if path.is_dir():
                 entry = self._get_directory_properties(
-                    path, include_index_entries=False)
+                    path, include_index_entries=False
+                )
             else:
                 entry = self._get_file_properties(path)
 
-            entry['path'] = self._get_output_filepath(path)['web']
+            entry["path"] = self._get_output_filepath(path)["web"]
             entries.append(entry)
 
-        entries.sort(key=lambda entry: str(entry.get('title', '')).lower())
-        entries.sort(key=lambda entry: entry['is_dir'], reverse=True)
+        entries.sort(key=lambda entry: str(entry.get("title", "")).lower())
+        entries.sort(key=lambda entry: entry["is_dir"], reverse=True)
 
         return entries
 
     def _get_file_properties(self, filepath):
-        post = {'title': filepath.name, 'pub_date': False}
+        post = {"title": filepath.name, "pub_date": False}
 
-        if filepath.suffix == '.md':
-            with open(filepath, encoding='utf-8') as file_pointer:
+        if filepath.suffix == ".md":
+            with open(filepath, encoding="utf-8") as file_pointer:
                 post = frontmatter.load(file_pointer).to_dict()
 
         # don't store file contents in memory
-        if 'content' in post.keys():
-            del post['content']
-        post['is_dir'] = False
+        if "content" in post.keys():
+            del post["content"]
+        post["is_dir"] = False
 
         return post
 
     def _get_output_filepath(self, input_filepath):
-
         def webpath(filepath):
-            return Path('/notes').joinpath(
-                filepath.relative_to(self.output_dir))
+            return Path("/notes").joinpath(filepath.relative_to(self.output_dir))
 
         r = {}
-        r['raw'] = self.output_dir.joinpath(
-            input_filepath.relative_to(self.input_dir))
-        r['web'] = webpath(r['raw'])
+        r["raw"] = self.output_dir.joinpath(input_filepath.relative_to(self.input_dir))
+        r["web"] = webpath(r["raw"])
 
         if input_filepath.is_dir():
             return r
 
-        if input_filepath.suffix == '.md':
-            r['html'] = self.output_dir.joinpath(
-                input_filepath.relative_to(
-                    self.input_dir)).with_suffix('.html')
-            r['web'] = webpath(r['html'])
+        if input_filepath.suffix == ".md":
+            r["html"] = self.output_dir.joinpath(
+                input_filepath.relative_to(self.input_dir)
+            ).with_suffix(".html")
+            r["web"] = webpath(r["html"])
 
         elif self.is_plaintext(input_filepath):
-            r['html'] = self.output_dir.joinpath(
-                input_filepath.relative_to(
-                    self.input_dir)).with_suffix(input_filepath.suffix +
-                                                 '.html')
-            r['raw'] = self.output_dir.joinpath(
-                input_filepath.relative_to(self.input_dir))
-            r['web'] = webpath(r['html'])
-            r['web_raw'] = webpath(r['raw'])
+            r["html"] = self.output_dir.joinpath(
+                input_filepath.relative_to(self.input_dir)
+            ).with_suffix(input_filepath.suffix + ".html")
+            r["raw"] = self.output_dir.joinpath(
+                input_filepath.relative_to(self.input_dir)
+            )
+            r["web"] = webpath(r["html"])
+            r["web_raw"] = webpath(r["raw"])
 
         return r
 
@@ -227,21 +222,30 @@ class FileMap:
         """
         r = []
         for _, val in self._map.items():
-            r.append({
-                'title': val.get('title', ''),
-                'tags': val.get('tags', []),
-                'path': str(val['dst_path']['web']),
-                'is_dir': val['is_dir']
-            })
+            r.append(
+                {
+                    "title": val.get("title", ""),
+                    "tags": val.get("tags", []),
+                    "path": str(val["dst_path"]["web"]),
+                    "is_dir": val["is_dir"],
+                }
+            )
 
         return r
 
     def get_uuid_map(self):
         d = {}
         for _, val in self._map.items():
-            if 'uuid' not in val.keys():
+            if "uuid" not in val.keys():
                 continue
-            d[val['uuid']] = str(val['dst_path']['web'])
+
+            if val["uuid"] in d.keys():
+                if not val["is_dir"]:
+                    # only allow directories to overwrite conflicting UUIDs
+                    # ensures that a readme's folder gets the permalink
+                    continue
+
+            d[val["uuid"]] = str(val["dst_path"]["web"])
 
         return d
 
@@ -250,7 +254,7 @@ def rfc822_date_sorter_key(date):
     if date is None:
         ret = 0
     else:
-        ret = int(dt.strptime(date, '%a, %d %b %Y %H:%M:%S %z').timestamp())
+        ret = int(dt.strptime(date, "%a, %d %b %Y %H:%M:%S %z").timestamp())
 
     return ret
 
@@ -260,31 +264,33 @@ def update_required(src_filepath, output_filepath):
     check if file requires an update,
     return boolean
     """
-    return not output_filepath.exists() or src_filepath.stat(
-    ).st_mtime > output_filepath.stat().st_mtimeme()
+    return (
+        not output_filepath.exists()
+        or src_filepath.stat().st_mtime > output_filepath.stat().st_mtimeme()
+    )
 
 
 def get_args():
-    """ Get command line arguments """
+    """Get command line arguments"""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('notes', type=Path)
-    parser.add_argument('-o', '--output-dir', type=Path, default='web')
+    parser.add_argument("notes", type=Path)
+    parser.add_argument("-o", "--output-dir", type=Path, default="web")
     parser.add_argument(
-        '-F',
-        '--force',
+        "-F",
+        "--force",
         action="store_true",
-        help=
-        "Generate new output html even if source file was modified before output html"
+        help="Generate new output html even if source file was modified before output html",
     )
     return parser.parse_args()
+
 
 def render_inline_blog_post(input_filepath):
     """
     render markdown file as blog post for inlinining into blog index
     returns html
     """
-    with open(input_filepath, encoding='utf-8') as file_pointer:
+    with open(input_filepath, encoding="utf-8") as file_pointer:
         content = frontmatter.load(file_pointer).content
 
     properties = FILEMAP.get(input_filepath)
@@ -303,7 +309,7 @@ def render_inline_blog_post(input_filepath):
         base_url=FILEMAP.get_base_url(),
     )
 
-    properties['dst_path']['html'].write_text(html)
+    properties["dst_path"]["html"].write_text(html)
 
     return html
 
@@ -314,7 +320,7 @@ def render_markdown_file(input_filepath):
     write markdown file to args.output_dir in html,
     return list of tuple of output filepath, frontmatter post
     """
-    with open(input_filepath, encoding='utf-8') as file_pointer:
+    with open(input_filepath, encoding="utf-8") as file_pointer:
         content = frontmatter.load(file_pointer).content
 
     properties = FILEMAP.get(input_filepath)
@@ -329,10 +335,10 @@ def render_markdown_file(input_filepath):
         tags=properties.get("tags"),
         author=properties.get("author"),
         title=properties.get("title"),
-        published=properties.get("pub_date")
+        published=properties.get("pub_date"),
     )
 
-    properties['dst_path']['html'].write_text(html)
+    properties["dst_path"]["html"].write_text(html)
 
 
 def render_plaintext_file(input_filepath):
@@ -347,10 +353,11 @@ def render_plaintext_file(input_filepath):
     html = JINJA_TEMPLATE_TEXTARTICLE.render(
         license=LICENSE,
         **properties,
-        raw_link=properties['dst_path']['web_raw'],
-        raw_content=raw_content)
-    properties['dst_path']['raw'].write_text(raw_content)
-    properties['dst_path']['html'].write_text(html)
+        raw_link=properties["dst_path"]["web_raw"],
+        raw_content=raw_content,
+    )
+    properties["dst_path"]["raw"].write_text(raw_content)
+    properties["dst_path"]["html"].write_text(html)
 
 
 def render_generic_file(input_filepath):
@@ -360,7 +367,7 @@ def render_generic_file(input_filepath):
     return list of tuple of output filepath, empty dict
     """
     properties = FILEMAP.get(input_filepath)
-    output_filepath = properties['dst_path']['raw']
+    output_filepath = properties["dst_path"]["raw"]
     shutil.copyfile(input_filepath, output_filepath)
 
 
@@ -371,7 +378,7 @@ def render_file(input_filepath):
     return list of tuples of output filepath, frontmatter post
     """
 
-    if input_filepath.suffix == '.md':
+    if input_filepath.suffix == ".md":
         return render_markdown_file(input_filepath)
 
     if FileMap.is_plaintext(input_filepath):
@@ -386,30 +393,29 @@ def render_markdown(content):
     """
 
     post_body = {
-        'text': content,
-        'toc-depth': 6,
-        'highlight-style': 'pygments',
-        'html-math-method': 'mathml',
-        'to': 'html',
-        'files': {
-            'data/data/abbreviations': '',
+        "text": content,
+        "toc-depth": 6,
+        "highlight-style": "pygments",
+        "html-math-method": "mathml",
+        "to": "html",
+        "files": {
+            "data/data/abbreviations": "",
         },
-        'standalone': False,
+        "standalone": False,
     }
 
-    headers = {'Accept': 'application/json'}
+    headers = {"Accept": "application/json"}
 
-    response = requests.post(PANDOC_SERVER_URL,
-                             headers=headers,
-                             json=post_body,
-                             timeout=PANDOC_TIMEOUT)
+    response = requests.post(
+        PANDOC_SERVER_URL, headers=headers, json=post_body, timeout=PANDOC_TIMEOUT
+    )
 
     response = response.json()
 
     # TODO look at response['messages'] and log them maybe?
     # https://github.com/jgm/pandoc/blob/main/doc/pandoc-server.md#response
 
-    return response['output']
+    return response["output"]
 
 
 def process_home_index(args, notes_git_head_sha1=None):
@@ -417,22 +423,23 @@ def process_home_index(args, notes_git_head_sha1=None):
     create home index.html in output_dir
     """
 
-    post = {'title': 'gronk', 'content': ''}
-    custom_content_file = args.notes.joinpath('readme.md')
+    post = {"title": "gronk", "content": ""}
+    custom_content_file = args.notes.joinpath("readme.md")
     if custom_content_file.is_file():
         fmpost = frontmatter.loads(custom_content_file.read_text()).to_dict()
         for key, val in fmpost.items():
             post[key] = val
 
-    post['content'] = render_markdown(post['content'])
+    post["content"] = render_markdown(post["content"])
 
     html = JINJA_TEMPLATE_HOME_INDEX.render(
         gronk_commit=GRONK_COMMIT,
         search_data=FILEMAP.to_search_data(),
         notes_git_head_sha1=notes_git_head_sha1,
-        post=post)
+        post=post,
+    )
 
-    args.output_dir.joinpath('index.html').write_text(html)
+    args.output_dir.joinpath("index.html").write_text(html)
 
 
 def generate_permalink_page(output_dir):
@@ -440,12 +447,15 @@ def generate_permalink_page(output_dir):
     create the directory and index.html for redirecting permalinks
     """
 
-    dir = output_dir.joinpath('permalink')
+    dir = output_dir.joinpath("permalink")
     dir.mkdir(exist_ok=True)
-    dir.joinpath('index.html').write_text(
-        JINJA_TEMPLATE_PERMALINK.render(title="redirecting... | gronk",
-                                        gronk_commit=GRONK_COMMIT,
-                                        data=FILEMAP.get_uuid_map()))
+    dir.joinpath("index.html").write_text(
+        JINJA_TEMPLATE_PERMALINK.render(
+            title="redirecting... | gronk",
+            gronk_commit=GRONK_COMMIT,
+            data=FILEMAP.get_uuid_map(),
+        )
+    )
 
 
 def generate_tag_browser(output_dir):
@@ -455,19 +465,19 @@ def generate_tag_browser(output_dir):
     tags = {}
 
     for post in FILEMAP.to_list():
-        post['path'] = post['dst_path']['web']
+        post["path"] = post["dst_path"]["web"]
 
-        if 'tags' not in post.keys():
+        if "tags" not in post.keys():
             continue
 
-        for tag in post['tags']:
+        for tag in post["tags"]:
             if tag not in tags.keys():
                 tags[tag] = []
 
             tags[tag].append(post)
 
     for tag, index_entries in tags.items():
-        output_file = output_dir.joinpath(tag, 'index.html')
+        output_file = output_dir.joinpath(tag, "index.html")
         output_file.parent.mkdir(exist_ok=True, parents=True)
         output_file.write_text(
             JINJA_TEMPLATE_INDEX.render(
@@ -475,36 +485,46 @@ def generate_tag_browser(output_dir):
                 automatic_index=True,
                 search_bar=True,
                 title=tag,
-                index_entries=[{
-                    'title': entry.get('title', ''),
-                    'is_dir': entry.get('is_dir', False),
-                    'path': str(entry.get('path', Path(''))),
-                } for entry in index_entries],
-            ))
+                index_entries=[
+                    {
+                        "title": entry.get("title", ""),
+                        "is_dir": entry.get("is_dir", False),
+                        "path": str(entry.get("path", Path(""))),
+                    }
+                    for entry in index_entries
+                ],
+            )
+        )
 
-    output_file = output_dir.joinpath('index.html')
+    output_file = output_dir.joinpath("index.html")
     output_file.parent.mkdir(exist_ok=True, parents=True)
     output_file.write_text(
-        JINJA_TEMPLATE_INDEX.render(automatic_index=True,
-                                    gronk_commit=GRONK_COMMIT,
-                                    search_bar=True,
-                                    title='tags',
-                                    index_entries=[{
-                                        'path': tag,
-                                        'title': tag,
-                                        'is_dir': False,
-                                    } for tag in tags.keys()]))
+        JINJA_TEMPLATE_INDEX.render(
+            automatic_index=True,
+            gronk_commit=GRONK_COMMIT,
+            search_bar=True,
+            title="tags",
+            index_entries=[
+                {
+                    "path": tag,
+                    "title": tag,
+                    "is_dir": False,
+                }
+                for tag in tags.keys()
+            ],
+        )
+    )
 
 
 def main(args):
-    """ Entry point for script """
+    """Entry point for script"""
 
     start_time = time.time()
 
     global LICENSE
     global FILEMAP
 
-    FILEMAP = FileMap(args.notes, args.output_dir.joinpath('notes'))
+    FILEMAP = FileMap(args.notes, args.output_dir.joinpath("notes"))
 
     # TODO have some sort of 'site rebuild in progress - come back in a minute
     # or two!' or auto checking/refreshing page for when site is being built
@@ -523,58 +543,65 @@ def main(args):
 
     for root_str, _, files in os.walk(args.notes):
         root = Path(root_str)
-        if '.git' in root.parts:
+        if ".git" in root.parts:
             continue
 
         root_properties = FILEMAP.get(root)
-        root_properties['dst_path']['raw'].mkdir(parents=True, exist_ok=True)
+        root_properties["dst_path"]["raw"].mkdir(parents=True, exist_ok=True)
 
         posts = []
-        if root_properties['blog']:
+        if root_properties["blog"]:
             for file in files:
                 props = FILEMAP.get(root.joinpath(file))
                 post = {
-                    'title': props['title'],
-                    'link': props['dst_path']['web'],
-                    'pub_date': props.get('pub_date'),
-                    'description': render_inline_blog_post(root.joinpath(file)),
+                    "title": props["title"],
+                    "link": props["dst_path"]["web"],
+                    "pub_date": props.get("pub_date"),
+                    "description": render_inline_blog_post(root.joinpath(file)),
                 }
                 posts.append(post)
 
             posts.sort(
-                key=lambda p: rfc822_date_sorter_key(p.get('pub_date')),
-                reverse=True
+                key=lambda p: rfc822_date_sorter_key(p.get("pub_date")), reverse=True
             )
 
             # render rss feed
             rss = JINJA_TEMPLATE_BLOG_FEED.render(
-                title=root_properties.get('title', ''),
-                description=root_properties.get('content', ''),
+                title=root_properties.get("title", ""),
+                description=root_properties.get("content", ""),
                 base_url=FILEMAP.get_base_url(),
                 link=f"{FILEMAP.get_base_url()}{root_properties['dst_path']['web']}",
-                language='en-GB',
+                language="en-GB",
                 posts=posts,
             )
-            root_properties['dst_path']['raw'].joinpath('feed.xml').write_text(rss)
-            root_properties['dst_path']['raw'].joinpath('rss.xml').write_text(rss)
+            root_properties["dst_path"]["raw"].joinpath("feed.xml").write_text(rss)
+            root_properties["dst_path"]["raw"].joinpath("rss.xml").write_text(rss)
 
-        #pprint.pprint(root_properties)
+        # pprint.pprint(root_properties)
         # render index
-        html = (JINJA_TEMPLATE_BLOGINDEX if root_properties['blog'] else JINJA_TEMPLATE_INDEX).render(
+        html = (
+            JINJA_TEMPLATE_BLOGINDEX
+            if root_properties["blog"]
+            else JINJA_TEMPLATE_INDEX
+        ).render(
             gronk_commit=GRONK_COMMIT,
-            title=root_properties.get('title', ''),
-            content=root_properties.get('content', ''),
-            content_after_search=root_properties['content_after_search'],
-            automatic_index=root_properties['automatic_index'],
-            search_bar=root_properties['search_bar'],
+            title=root_properties.get("title", ""),
+            content=root_properties.get("content", ""),
+            content_after_search=root_properties["content_after_search"],
+            automatic_index=root_properties["automatic_index"],
+            search_bar=root_properties["search_bar"],
             posts=posts,
-            index_entries=[{
-                'title': entry.get('title', ''),
-                'is_dir': entry.get('is_dir', False),
-                'path': str(entry.get('path', Path(''))),
-            } for entry in root_properties.get('index_entries', '')],
+            uuid=root_properties.get("uuid"),
+            index_entries=[
+                {
+                    "title": entry.get("title", ""),
+                    "is_dir": entry.get("is_dir", False),
+                    "path": str(entry.get("path", Path(""))),
+                }
+                for entry in root_properties.get("index_entries", "")
+            ],
         )
-        root_properties['dst_path']['raw'].joinpath('index.html').write_text(html)
+        root_properties["dst_path"]["raw"].joinpath("index.html").write_text(html)
 
         # render each file
         for file in files:
@@ -583,18 +610,23 @@ def main(args):
     process_home_index(args)
 
     # copy styling and js scripts necessary for function
-    shutil.copytree(GRONK_CSS_DIR,
-                    args.output_dir.joinpath('css'),
-                    dirs_exist_ok=True)
-    shutil.copytree(GRONK_JS_DIR,
-                    args.output_dir.joinpath('js'),
-                    dirs_exist_ok=True)
+    shutil.copytree(GRONK_CSS_DIR, args.output_dir.joinpath("css"), dirs_exist_ok=True)
+    shutil.copytree(GRONK_JS_DIR, args.output_dir.joinpath("js"), dirs_exist_ok=True)
 
-    generate_tag_browser(args.output_dir.joinpath('tags'))
+    generate_tag_browser(args.output_dir.joinpath("tags"))
     generate_permalink_page(args.output_dir)
 
     elapsed_time = time.time() - start_time
     print(f"generated notes {elapsed_time=}")
+
+    with open(args.output_dir.joinpath("fart.json"), "w+") as fp:
+        json.dump(
+            {
+                k: {prop: str(propval) for prop, propval in v.items()}
+                for k, v in FILEMAP._map.items()
+            },
+            fp,
+        )
 
     return 0
 
@@ -605,14 +637,13 @@ def start_pandoc_server():
     successful and return version as string
     """
     start_time = time.time()
-    process = subprocess.Popen(["/usr/bin/pandoc-server"],
-                               stdout=subprocess.PIPE)
+    process = subprocess.Popen(["/usr/bin/pandoc-server"], stdout=subprocess.PIPE)
     version = None
 
     while True:
         try:
             resp = requests.get(f"{PANDOC_SERVER_URL}/version")
-            version = resp.content.decode('utf-8')
+            version = resp.content.decode("utf-8")
             break
         except requests.ConnectionError:
             time.sleep(0.1)
@@ -629,7 +660,7 @@ def start_pandoc_server():
 
 # TODO implement useful logging and debug printing
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pandoc_process = start_pandoc_server()
 
     try:
