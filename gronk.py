@@ -222,6 +222,9 @@ class FileMap:
         """
         r = []
         for _, val in self._map.items():
+            if val["src_path"].name == "readme.md":
+                continue
+
             r.append(
                 {
                     "title": val.get("title", ""),
