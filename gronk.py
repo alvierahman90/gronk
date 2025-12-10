@@ -492,6 +492,7 @@ def generate_tag_browser(output_dir):
                         "path": str(entry.get("path", Path(""))),
                     }
                     for entry in index_entries
+                    if entry.get("src_path").name != "readme.md"
                 ],
             )
         )
@@ -508,9 +509,9 @@ def generate_tag_browser(output_dir):
                 {
                     "path": tag,
                     "title": tag,
-                    "is_dir": False,
+                    "is_dir": True,
                 }
-                for tag in tags.keys()
+                for tag in sorted(tags.keys())
             ],
         )
     )
