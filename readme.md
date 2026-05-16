@@ -44,6 +44,26 @@ Set the following environment variables (or create a .env file) and run `docker 
 0. Install [Pandoc](https://pandoc.org/index.html) and [Pip](https://github.com/pypa/pip), python3-dev, and a C compiler
 1. `sudo make install`
 
+## JavaScriptless Permalink Redirects
+
+By default, gronk uses JavaScript to redirect permalinks to their corresponding pages.
+This allows the whole website to be a static site.
+
+JavaScript can be avoided by hosting an instance of
+[urls-txt](https://pls.cx/urls-txt) with the `urls.txt` generated in the output folder.
+Then redirect `/permalink` requests otherwise going to gronk to this urls-txt instance.
+For NGINX, a minimal config may look like:
+
+```
+location /  {
+        root /var/run/html/notes.alv.cx;
+        
+        location /permalink {
+          proxy_pass http://localhost:3000;
+        }
+}
+```
+
 ## Other Things to Know
 
 - gronk indexes [ATX-style headings](https://pandoc.org/MANUAL.html#atx-style-headings) for
