@@ -623,14 +623,24 @@ def main(args):
     elapsed_time = time.time() - start_time
     print(f"generated notes {elapsed_time=}")
 
-    with open(args.output_dir.joinpath("fart.json"), "w+") as fp:
-        json.dump(
-            {
-                k: {prop: str(propval) for prop, propval in v.items()}
+    #with open(args.output_dir.joinpath("data.json"), "w+") as fp:
+    #    json.dump(
+    #        {
+    #            k: {prop: str(propval) for prop, propval in v.items()}
+    #            for k, v in FILEMAP._map.items()
+    #        },
+    #        fp,
+    #    )
+
+    with open(args.output_dir.joinpath("urls.txt"), "w") as fp:
+        fp.write(
+            "\n".join([
+                f"/permalink?uuid={v['uuid']} {v['dst_path']['web']}"
                 for k, v in FILEMAP._map.items()
-            },
-            fp,
+                if v.get('uuid')
+            ])
         )
+
 
     return 0
 
